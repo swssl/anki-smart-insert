@@ -66,16 +66,35 @@ def process_inserted_data(mime: QMimeData,
     text = data.split("\n")
     paragraphs = []
     for index, line in enumerate(text):
-        # Create a new Headline from first line
         while line[0] == " ":
             line = line[1:]
-        # Create a new Paragraph when line begins with bullet
-        if line[0] in config["bullets"]:
-            paragraphs = paragraphs.append(Headline(line.replace("\n", "")))
-        
-        line = apply_filter(line)
+        # Process first line
+        if index == 0:
+            if line[0] not in config['bullets']:
+                # Create Headline if line doenst start with a bullet
+                paragraphs.append(Headline(line, bold=True))
+            else:
+                # Create paragraph if there is a bullet
+                paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
+            continue
+        # Process the following [1:] lines
+        if line[0] in config['bullets']:
+            # Create a new Paragraph
+            paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
+        elif line[0] not in config["bullets"]:
+            # If possible, concat line to latest Paragraph, otherwise create new
+            if len(paragraphs) and isinstance(paragraphs[-1], Paragraph):
+                paragraphs[-1].text = f"{paragraphs[-1].text} {line}"
+            else:
+                paragraphs.append(Paragraph(symbol=line[0], text=line))
+    output_text = ""
+    for p in paragraphs:
+        if isinstance(p, Headline):
+            output_text + output_text + f"{p}\n"
+        elif isinstance(p, Paragraph):
+            output_text = output_text + f"{p.symbol} {p.text}\n"
 
-
+        # line = apply_filter(line)
     # if config['symbols']['activate']:
     #     if isinstance(config['symbols']['input'], list):
     #         if config["symbols"]["include_whitespaced"]:
@@ -91,7 +110,7 @@ def process_inserted_data(mime: QMimeData,
     #             data = data.replace(sym, setting['output'])
 
     result = QMimeData()
-    result.setData("text/plain", QByteArray(data.encode()))
+    result.setData("text/plain", QByteArray(output_text.encode()))
     return result
 
 
