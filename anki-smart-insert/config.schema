@@ -1,0 +1,62 @@
+{
+    "type": "object",
+    "properties": {
+        "bullets": {
+            "type":"array",
+            "items":{
+                "type": "str"
+            }
+        },
+        "options": {
+            "type": "object",
+            "properties": {
+                "activate": {
+                    "type": "boolean"
+                },
+                "input": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "output": {
+                    "type": "string"
+                },
+                "include_whitespaced": {
+                    "type": "boolean"
+                },
+                "add_whitespace": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "delete_newline": {
+            "type": "object",
+            "properties": {
+                "after_symbol": {
+                    "type": "boolean"
+                },
+                "in_text": {
+                    "type": "boolean"
+                }
+            }
+        },
+        "additional_replacements": {
+            "type": "array",
+            "items": {
+                "type": "object",
+                "properties": {
+                    "input": {
+                        "type": "array",
+                        "items": {
+                            "type": "string"
+                        }
+                    },
+                    "output": {
+                        "type": "string"
+                    }
+                }
+            }
+        }
+    }
+}
