@@ -14,6 +14,9 @@ class Headline():
     def get_text(self) -> str:
         return self.text
 
+    def __repr__(self) -> str:
+        return f'<Headline "{self.__str__()}">'
+
     def __str__(self):
         res = self.text
         if self.bold:
@@ -28,3 +31,10 @@ class Paragraph():
 
     def add_text(self, text: str):
         self.text.concat(text)
+
+    def __repr__(self) -> str:
+        return f'<Paragraph [{self.symbol}]"{self.__str__()}">'
+
+    def __str__(self) -> str:
+        res = self.text
+        return res
