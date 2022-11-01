@@ -59,59 +59,62 @@ def process_inserted_data(mime: QMimeData,
     Returns:
         QMimeData: Edited clipboard data
     """
+    print("anki-smart-insert invoked")
     # Test if data update should be applied
-    if internal or not mime.hasText():
-        return mime
-    data = mime.text()
-    text = data.split("\n")
-    paragraphs = []
-    for index, line in enumerate(text):
-        while line[0] == " ":
-            line = line[1:]
-        # Process first line
-        if index == 0:
-            if line[0] not in config['bullets']:
-                # Create Headline if line doenst start with a bullet
-                paragraphs.append(Headline(line, bold=True))
-            else:
-                # Create paragraph if there is a bullet
+    try:
+        if not mime.hasText():
+            return mime
+        data = mime.text()
+        text = data.split("\n")
+        # Whenever we got a one-liner, return it as-is
+        if len(text) == 1:
+            return mime
+        paragraphs = []
+        for index, line in enumerate(text):
+            while line[0] == " ":
+                line = line[1:]
+            # Process first line
+            if index == 0:
+                if line[0] not in config['bullets']:
+                    # Create Headline if line doesn't start with a bullet
+                    paragraphs.append(Headline(line, bold=True))
+                else:
+                    # Create paragraph if there is a bullet
+                    paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
+                continue
+            # Process the following [1:] lines
+            if line[0] in config['bullets']:
+                # Create a new Paragraph
                 paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
-            continue
-        # Process the following [1:] lines
-        if line[0] in config['bullets']:
-            # Create a new Paragraph
-            paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
-        elif line[0] not in config["bullets"]:
-            # If possible, concat line to latest Paragraph, otherwise create new
-            if len(paragraphs) and isinstance(paragraphs[-1], Paragraph):
-                paragraphs[-1].text = f"{paragraphs[-1].text} {line}"
-            else:
-                paragraphs.append(Paragraph(symbol=line[0], text=line))
-    output_text = ""
-    for p in paragraphs:
-        if isinstance(p, Headline):
-            output_text + output_text + f"{p}\n"
-        elif isinstance(p, Paragraph):
-            output_text = output_text + f"{p.symbol} {p.text}\n"
-
-        # line = apply_filter(line)
-    # if config['symbols']['activate']:
-    #     if isinstance(config['symbols']['input'], list):
-    #         if config["symbols"]["include_whitespaced"]:
-    #             for sym in config['symbols']['input']:
-    #                 data = data.replace(f"{sym} ", f"{config['symbols']['output']} ")
-    #         output = f"{config['symbols']['output']} " if config["symbols"]["add_whitespace"] else config['symbols']['output']
-    #         for sym in config['symbols']['input']:
-    #             data = data.replace(sym, output)
-    # if isinstance(config['additional_replacements'], list) \
-    #    and len(config['additional_replacements']):
-    #     for setting in config['additional_replacements']:
-    #         for sym in setting['input']:
-    #             data = data.replace(sym, setting['output'])
-
-    result = QMimeData()
-    result.setData("text/plain", QByteArray(output_text.encode()))
-    return result
+            elif line[0] not in config["bullets"]:
+                # If possible, concat line to latest Paragraph, otherwise create new
+                if len(paragraphs) and isinstance(paragraphs[-1], Paragraph):
+                    paragraphs[-1].add_text(line)
+                else:
+                    paragraphs.append(Paragraph(symbol=line[0], text=line))
+        # Whenever we didn't detect any text, return the initial data
+        if paragraphs is []:
+            return mime
+        # Format the parsed text objects for output
+        output_text = ""
+        for p in paragraphs:
+            if isinstance(p, Headline):
+                output_text = output_text + f"{p}"
+            elif isinstance(p, Paragraph):
+                if config["options"]["output"] not in ["", None]:
+                    output_text = output_text + f"{config['options']['output']} {p}"
+                else:
+                    output_text = output_text + f"{p.symbol} {p}"
+        # Create result object that overwrites the initial mime argument
+        result = QMimeData()
+        result.setData("text/html", QByteArray(output_text.encode()))
+        return result
+    except Exception as e:
+        # Emergency exit: If any error occurs we just return the initial data
+        print(e)
+        return mime
 
 
+# Register process_inserted_data as callback for the
+# editor_will_process_mime hook
 gui_hooks.editor_will_process_mime.append(process_inserted_data)
