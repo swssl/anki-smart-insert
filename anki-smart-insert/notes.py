@@ -4,6 +4,8 @@ from typing import (
 
 
 class Headline():
+    """Headline representing class. Used to store lines without bullets
+    """
     def __init__(self, text: str = "", bold: bool = False):
         self.text = text
         self.bold = bold
@@ -20,21 +22,23 @@ class Headline():
     def __str__(self):
         res = self.text
         if self.bold:
-            res = f"<b>{res}</b>"
+            res = f"<b>{res}</b><br>"
         return res
 
 
 class Paragraph():
+    """Paragraph representing class. Used to store key points.
+    """
     def __init__(self, symbol: Optional[str], text: Optional[str]):
         self.symbol = symbol
         self.text = text
 
     def add_text(self, text: str):
-        self.text.concat(text)
+        self.text = self.text + " " + text
 
     def __repr__(self) -> str:
         return f'<Paragraph [{self.symbol}]"{self.__str__()}">'
 
     def __str__(self) -> str:
-        res = self.text
+        res = f"{self.text}<br>"
         return res
