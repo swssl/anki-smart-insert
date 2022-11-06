@@ -129,3 +129,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+# vscode configs
+.vscode
+
+# Anki Metadata
+anki-smart-insert/meta.json
