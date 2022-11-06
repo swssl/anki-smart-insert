@@ -1,4 +1,5 @@
 import json
+import re
 import jsonschema
 from aqt import (
     gui_hooks,
@@ -41,7 +42,67 @@ def apply_filter(input: str) -> str:
     return input
 
 
-def process_inserted_data(mime: QMimeData,
+def process_notes(index: int, line: str, paragraphs: list)-> list:
+    print(line)
+    while line[0] == " ":
+        line = line[1:]
+    # Process first line
+    if index == 0:
+        if line[0] not in config['bullets']:
+            # Create Headline if line doesn't start with a bullet
+            paragraphs.append(Headline(line, bold=True))
+        else:
+            # Create paragraph if there is a bullet
+            paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
+        return paragraphs
+    # Process the following [1:] lines
+    if line[0] in config['bullets']:
+        # Create a new Paragraph
+        paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
+    elif line[0] not in config["bullets"] and not re.match(config["numbered_lists"]["filter_regex"], line):
+        # If possible, concat line to latest Paragraph, otherwise create new
+        if len(paragraphs) and isinstance(paragraphs[-1], Paragraph):
+            paragraphs[-1].add_text(line)
+        else:
+            paragraphs.append(Paragraph(symbol=line[0], text=line))
+    return paragraphs
+
+
+def process_enumerations(index: int, line: str, paragraphs: list)-> list:
+    filter_regex = config["numbered_lists"]["filter_regex"]
+    enumeration_ref = config['numbered_lists']["enumeration_reference"]
+    content_ref = config['numbered_lists']["content_reference"]
+    while line[0] == " ":
+        line = line[1:]
+    # Process first line
+    if index == 0:
+        if not re.match(config["numbered_lists"], line):
+            # Create Headline if line doesn't start with a bullet
+            paragraphs.append(Headline(line, bold=True))
+        else:
+            # Create paragraph if there is a bullet
+            paragraphs.append(
+                Paragraph(symbol=re.sub(filter_regex, enumeration_ref, line),
+                          text=re.sub(filter_regex, content_ref, line)))
+        return paragraphs
+    # Process the following [1:] lines
+    if re.match(filter_regex, line):
+        # Create a new Paragraph
+        paragraphs.append(
+                Paragraph(symbol=re.sub(filter_regex, enumeration_ref, line),
+                          text=re.sub(filter_regex, content_ref, line)))
+    elif not re.match(filter_regex, line):
+        # If possible, concat line to latest Paragraph, otherwise create new
+        if len(paragraphs) and isinstance(paragraphs[-1], Paragraph):
+            paragraphs[-1].add_text(re.sub(filter_regex, content_ref, line))
+        else:
+            paragraphs.append(
+                Paragraph(symbol=re.sub(filter_regex, enumeration_ref, line),
+                          text=re.sub(filter_regex, content_ref, line)))
+    return paragraphs
+
+
+def on_insert(mime: QMimeData,
                           editor_web_view: EditorWebView,
                           internal: bool,
                           extended: bool,
@@ -71,27 +132,11 @@ def process_inserted_data(mime: QMimeData,
             return mime
         paragraphs = []
         for index, line in enumerate(text):
-            while line[0] == " ":
-                line = line[1:]
-            # Process first line
-            if index == 0:
-                if line[0] not in config['bullets']:
-                    # Create Headline if line doesn't start with a bullet
-                    paragraphs.append(Headline(line, bold=True))
-                else:
-                    # Create paragraph if there is a bullet
-                    paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
-                continue
-            # Process the following [1:] lines
-            if line[0] in config['bullets']:
-                # Create a new Paragraph
-                paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
-            elif line[0] not in config["bullets"]:
-                # If possible, concat line to latest Paragraph, otherwise create new
-                if len(paragraphs) and isinstance(paragraphs[-1], Paragraph):
-                    paragraphs[-1].add_text(line)
-                else:
-                    paragraphs.append(Paragraph(symbol=line[0], text=line))
+            paragraphs = process_notes(index, line, paragraphs)
+        if len(paragraphs) <= 1 and config["numbered_lists"]["activate"]:
+            print("Run enumeration analysis")
+            for index, line in enumerate(text):
+                paragraphs = process_enumerations(index, line, paragraphs)
         # Whenever we didn't detect any text, return the initial data
         if paragraphs is []:
             return mime
@@ -112,9 +157,10 @@ def process_inserted_data(mime: QMimeData,
     except Exception as e:
         # Emergency exit: If any error occurs we just return the initial data
         print(e)
+        raise e
         return mime
 
 
 # Register process_inserted_data as callback for the
 # editor_will_process_mime hook
-gui_hooks.editor_will_process_mime.append(process_inserted_data)
+gui_hooks.editor_will_process_mime.append(on_insert)
