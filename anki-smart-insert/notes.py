@@ -26,7 +26,7 @@ class Headline():
         return res
 
 
-class Paragraph():
+class Section():
     """Paragraph representing class. Used to store key points.
     """
     def __init__(self, symbol: Optional[str], text: Optional[str]):
@@ -37,8 +37,12 @@ class Paragraph():
         self.text = self.text + " " + text
 
     def __repr__(self) -> str:
-        return f'<Paragraph [{self.symbol}]"{self.__str__()}">'
+        return f'<{self.__class__.__name__} [{self.symbol}]"{self.__str__()}">'
 
     def __str__(self) -> str:
         res = f"{self.text}<br>"
         return res
+
+
+class NumberedSection(Section):
+    pass
