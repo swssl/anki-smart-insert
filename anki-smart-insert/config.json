@@ -19,6 +19,7 @@
         "activate": true,
         "filter_regex": "^((\\d\\.?)+)(.*)",
         "enumeration_reference": "\\g<1>",
-        "content_reference": "\\g<2>"
-    }
+        "content_reference": "\\g<3>"
+    },
+    "debug_mode": true
 }

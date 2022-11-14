@@ -5,7 +5,6 @@ from aqt import (
     gui_hooks,
     mw,
 )
-from aqt.editor import EditorWebView
 from aqt.qt import (
     QByteArray,
     QMimeData,
@@ -15,7 +14,8 @@ from aqt.utils import (
 )
 from .notes import (
     Headline,
-    Paragraph,
+    Section,
+    NumberedSection,
 )
 
 
@@ -27,7 +27,7 @@ try:
     _config = json.load(
         open(f"{mw.addonManager.addonsFolder(__name__)}/config.json")
         )
-    jsonschema.validate(schema=_schema, instance=_config)
+    # jsonschema.validate(schema=_schema, instance=_config)
 except jsonschema.exceptions.ValidationError as e:
     msg = f"Failed to validate {e.json_path} configuration from {config_path}."
     showWarning(msg)
@@ -35,94 +35,27 @@ except FileNotFoundError:
     pass
 finally:
     config = mw.addonManager.getConfig(__name__)
-    print("Load config from config.json")
+    print("Loaded config from config.json")
 
 
-def apply_filter(input: str) -> str:
-    return input
-
-
-def process_notes(index: int, line: str, paragraphs: list)-> list:
-    print(line)
-    while line[0] == " ":
-        line = line[1:]
-    # Process first line
-    if index == 0:
-        if line[0] not in config['bullets']:
-            # Create Headline if line doesn't start with a bullet
-            paragraphs.append(Headline(line, bold=True))
-        else:
-            # Create paragraph if there is a bullet
-            paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
-        return paragraphs
-    # Process the following [1:] lines
-    if line[0] in config['bullets']:
-        # Create a new Paragraph
-        paragraphs.append(Paragraph(symbol=line[0], text=line[1:]))
-    elif line[0] not in config["bullets"] and not re.match(config["numbered_lists"]["filter_regex"], line):
-        # If possible, concat line to latest Paragraph, otherwise create new
-        if len(paragraphs) and isinstance(paragraphs[-1], Paragraph):
-            paragraphs[-1].add_text(line)
-        else:
-            paragraphs.append(Paragraph(symbol=line[0], text=line))
-    return paragraphs
-
-
-def process_enumerations(index: int, line: str, paragraphs: list)-> list:
-    filter_regex = config["numbered_lists"]["filter_regex"]
-    enumeration_ref = config['numbered_lists']["enumeration_reference"]
-    content_ref = config['numbered_lists']["content_reference"]
-    while line[0] == " ":
-        line = line[1:]
-    # Process first line
-    if index == 0:
-        if not re.match(config["numbered_lists"], line):
-            # Create Headline if line doesn't start with a bullet
-            paragraphs.append(Headline(line, bold=True))
-        else:
-            # Create paragraph if there is a bullet
-            paragraphs.append(
-                Paragraph(symbol=re.sub(filter_regex, enumeration_ref, line),
-                          text=re.sub(filter_regex, content_ref, line)))
-        return paragraphs
-    # Process the following [1:] lines
-    if re.match(filter_regex, line):
-        # Create a new Paragraph
-        paragraphs.append(
-                Paragraph(symbol=re.sub(filter_regex, enumeration_ref, line),
-                          text=re.sub(filter_regex, content_ref, line)))
-    elif not re.match(filter_regex, line):
-        # If possible, concat line to latest Paragraph, otherwise create new
-        if len(paragraphs) and isinstance(paragraphs[-1], Paragraph):
-            paragraphs[-1].add_text(re.sub(filter_regex, content_ref, line))
-        else:
-            paragraphs.append(
-                Paragraph(symbol=re.sub(filter_regex, enumeration_ref, line),
-                          text=re.sub(filter_regex, content_ref, line)))
-    return paragraphs
-
-
-def on_insert(mime: QMimeData,
-                          editor_web_view: EditorWebView,
-                          internal: bool,
-                          extended: bool,
-                          drop_event: bool,):
+def on_insert(mime: QMimeData, *args):
     """Function that is called before something is pasted into any editor field
 
     Args:
         mime (QMimeData): Data to be inserted
-        editor_web_view (EditorWebView): Some kind of editor instance
-        internal (bool): true if the content is copied from inside anki
-        extended (bool): ???
-        drop_event (bool): True if it was a drag-and-drop event instead of
-        ordinary ctrl+v???
 
     Returns:
         QMimeData: Edited clipboard data
     """
-    print("anki-smart-insert invoked")
-    # Test if data update should be applied
     try:
+        print("anki-smart-insert invoked")
+        # enumerations_filter = config["numbered_lists"]["filter_regex"]
+        bullets = config['bullets']
+        filter_regex = config["numbered_lists"]["filter_regex"]
+        enumeration_ref = config['numbered_lists']["enumeration_reference"]
+        content_ref = config['numbered_lists']["content_reference"]
+        # Test if data update should be applied
+
         if not mime.hasText():
             return mime
         data = mime.text()
@@ -132,20 +65,46 @@ def on_insert(mime: QMimeData,
             return mime
         paragraphs = []
         for index, line in enumerate(text):
-            paragraphs = process_notes(index, line, paragraphs)
-        if len(paragraphs) <= 1 and config["numbered_lists"]["activate"]:
-            print("Run enumeration analysis")
-            for index, line in enumerate(text):
-                paragraphs = process_enumerations(index, line, paragraphs)
-        # Whenever we didn't detect any text, return the initial data
+            while line[0] == " ":
+                line = line[1:]
+            if index == 0:
+                if re.match(filter_regex, line):
+                    # Add a new NumberedSection to paragraphs
+                    paragraphs.append(NumberedSection(
+                            symbol=re.sub(filter_regex, enumeration_ref, line),
+                            text=re.sub(filter_regex, content_ref, line))
+                            )
+                elif line[0] in bullets:
+                    # Add a new Section to paragraphs
+                    paragraphs.append(Section(symbol=line[0], text=line[1:]))
+                else:
+                    paragraphs.append(Headline(line, bold=True))
+            else:
+                if re.match(filter_regex, line):
+                    # Add new Numbered Section to paragraphs
+                    paragraphs.append(NumberedSection(
+                            symbol=re.sub(filter_regex, enumeration_ref, line),
+                            text=re.sub(filter_regex, content_ref, line)))
+                elif line[0] in bullets:
+                    # Add new Section to paragraphs
+                    paragraphs.append(Section(symbol=line[0], text=line[1:]))
+                elif len(paragraphs) and isinstance(paragraphs[-1], Section):
+                    # Add line to current paragraph
+                    paragraphs[-1].add_text(line)
+                else:
+                    # Add Section without symbol to paragraphs
+                    paragraphs.append(Section(symbol='', text=line))
         if paragraphs is []:
+            # Whenever we didn't detect any text, return the initial data
             return mime
         # Format the parsed text objects for output
         output_text = ""
         for p in paragraphs:
             if isinstance(p, Headline):
                 output_text = output_text + f"{p}"
-            elif isinstance(p, Paragraph):
+            elif isinstance(p, NumberedSection):
+                output_text = output_text + f"{p.symbol} {p}"
+            elif isinstance(p, Section):
                 if config["options"]["output"] not in ["", None]:
                     output_text = output_text + f"{config['options']['output']} {p}"
                 else:
@@ -156,8 +115,10 @@ def on_insert(mime: QMimeData,
         return result
     except Exception as e:
         # Emergency exit: If any error occurs we just return the initial data
-        print(e)
-        raise e
+        if config['debug_mode']:
+            raise e
+        else:
+            print(e)
         return mime
 
 
