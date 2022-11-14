@@ -10,15 +10,6 @@
         "options": {
             "type": "object",
             "properties": {
-                "activate": {
-                    "type": "boolean"
-                },
-                "input": {
-                    "type": "array",
-                    "items": {
-                        "type": "string"
-                    }
-                },
                 "output": {
                     "type": "string"
                 },
@@ -55,6 +46,20 @@
                     "output": {
                         "type": "string"
                     }
+                }
+            }
+        },
+        "numbered_lists":{
+            "type":"object",
+            "properties":{
+                "activate": {
+                    "type": "boolean"
+                },
+                "filter_regex": {
+                    "type": "string"
+                },
+                "replacement_regex":{
+                    "type": "string"
                 }
             }
         }

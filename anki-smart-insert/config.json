@@ -1,10 +1,6 @@
 {
     "bullets":["•"],
     "options":{
-        "activate": true,
-        "input": [
-            "•"
-        ],
         "output": "‒",
         "include_whitespaced": true,
         "add_whitespace": true
@@ -18,5 +14,12 @@
             "input":[],
             "output": ""
         }
-    ]
+    ],
+    "numbered_lists": {
+        "activate": true,
+        "filter_regex": "^((\\d[\\.\\)]?)+)(.*)",
+        "enumeration_reference": "\\g<1>",
+        "content_reference": "\\g<3>"
+    },
+    "debug_mode": true
 }
