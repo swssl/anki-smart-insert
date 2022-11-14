@@ -17,7 +17,7 @@
     ],
     "numbered_lists": {
         "activate": true,
-        "filter_regex": "^((\\d\\.?)+)(.*)",
+        "filter_regex": "^((\\d[\\.\\)]?)+)(.*)",
         "enumeration_reference": "\\g<1>",
         "content_reference": "\\g<3>"
     },
