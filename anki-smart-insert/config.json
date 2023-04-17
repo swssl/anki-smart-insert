@@ -21,5 +21,13 @@
         "enumeration_reference": "\\g<1>",
         "content_reference": "\\g<3>"
     },
-    "debug_mode": true
+    "ai":{
+        "enabled": true,
+        "front_regex": "^[FfQq]: *(.*)$",
+        "front_mask": "\\g<1>",
+        "back_regex": "^A: *(.*)$",
+        "back_mask": "\\g<1>",
+        "tag_generated_cards": true
+    },
+    "debug_mode": false
 }

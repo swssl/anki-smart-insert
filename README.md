@@ -1,7 +1,8 @@
 
 # Smart Insert Anki Add-on
 
-Add-on for [ankitects/anki](https://github.com/ankitects/anki) that aims at enhancing the ctrl+v experience.
+
+Add-on for [ankitects/anki](https://github.com/ankitects/anki) that aims at enhancing the ctrl+v experience and and simplifying the import of AI-generated flashcards.
 
 
 [![GPL v3](https://img.shields.io/github/license/swssl/anki-smart-insert)](https://github.com/swssl/anki-smart-insert/blob/main/LICENSE) 
@@ -17,6 +18,11 @@ Go to [the Add-on's official page](https://ankiweb.net/shared/info/1303065007), 
 - Analysis of pasted content to detect Headlines and separated paragraphs
 - Removal of line breaks to enhance the card's layout on different screen widths
 - Replacement of bullet symbol with a custom one (defaults to -)
+
+### How to generate flashcards with AI
+
+When generating flashcards with ChatGPT, just prefix your input text wit something like this:
+> The following is a `[text/wikipedia article/etc]` about `[Topic]`. Create flashcards for use by Anki. Prefix each question with "Q:" and shorten the answers to two sentences.
 
 ## Known Issues
 
